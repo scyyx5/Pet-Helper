@@ -1,0 +1,137 @@
+default:
+  image: docker:19.03.12
+
+variables:
+  DOCKER_TLS_CERTDIR: "/certs"
+
+services:
+  - name: docker:19.03.12-dind
+
+stages:
+  - clean
+  - prebuild
+  - deploy
+  - testing
+
+clean_lane:
+  stage: clean
+  image: ubuntu:20.04
+  before_script:
+    - apt-get update -qq
+    - apt-get install -qq git
+    - 'which ssh-agent || ( apt-get install -qq openssh-client )'
+    - eval $(ssh-agent -s)
+    - ssh-add <(echo "$SERVER_PRIVATE_KEY")
+    - mkdir -p ~/.ssh
+    - '[[ -f /.dockerenv ]] && echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
+  script:
+    - ssh root@$SERVER_IP "(docker stop frontend || true) && (docker rm -f frontend || true) && (docker image rm andonis1616/teamproject || true) && (docker stop backend || true) && (docker rm -f backend || true) && (docker image rm andonis1616/backend || true) && (docker stop ai || true) && (docker rm -f ai || true) && (docker image rm andonis1616/ai || true)"
+  tags:
+    - docker
+
+prebuild_frontend_lane:
+  stage: prebuild
+  before_script:
+    - docker login -u andonis1616 -p $DOCKER_ACCESS_TOKEN
+  script:
+    - docker pull andonis1616/teamproject || true
+    - docker build --tag andonis1616/teamproject ./src/frontend/
+    - docker push andonis1616/teamproject
+  tags:
+    - flutter
+
+prebuild_backend_lane:
+  stage: prebuild
+  before_script:
+    - docker login -u andonis1616 -p $DOCKER_ACCESS_TOKEN
+  script:
+    - docker pull andonis1616/backend || true
+    - docker build --tag andonis1616/backend ./src/backend/
+    - docker push andonis1616/backend
+  tags:
+    - django
+
+prebuild_ai_lane:
+  stage: prebuild
+  before_script:
+    - docker login -u andonis1616 -p $DOCKER_ACCESS_TOKEN
+  script:
+    - docker pull andonis1616/ai || true
+    - docker build --tag andonis1616/ai ./src/ai/
+    - docker push andonis1616/ai
+  tags:
+    - ai
+
+deploy_lane:
+  stage: deploy
+  image: ubuntu:20.04
+  before_script:
+    - apt-get update -qq
+    - apt-get install -qq git
+    - 'which ssh-agent || ( apt-get install -qq openssh-client )'
+    - eval $(ssh-agent -s)
+    - ssh-add <(echo "$SERVER_PRIVATE_KEY")
+    - mkdir -p ~/.ssh
+    - '[[ -f /.dockerenv ]] && echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
+  script:
+    - ssh root@$SERVER_IP "docker login -u andonis1616 -p $DOCKER_ACCESS_TOKEN && docker run -d -p 80:80 -p 443:443 --name frontend andonis1616/teamproject && docker run -d -p 8000:8000 --name backend andonis1616/backend && docker run -d -p 4444:4444 --name ai andonis1616/ai"
+  tags:
+    - docker
+
+test_django_lane:
+  stage: testing
+  image: python:3.9
+  before_script:
+    - cd src/backend
+    - pip install -r requirements.txt
+  script:
+    - python3 manage.py test tests/
+  tags:
+    - test
+
+
+test_system_lane:
+  stage: testing
+  image: python:3.9
+  before_script:
+    - cd src/backend
+    - pip install -r requirements.txt
+  script:
+    - python3 manage.py test > results_system.txt
+  artifacts:
+    when: always
+    paths:
+      - src/backend/results_system.txt
+  tags:
+    - test
+  
+test_ai_lane:
+  stage: testing
+  image: python:3.9
+  before_script:
+    - cd src/ai
+    - pip install -r requirements.txt
+  script:
+    - py.test --junitxml results_ai.xml test.py
+  artifacts:
+    when: always
+    reports:
+      junit: src/ai/results_ai.xml
+  tags:
+    - test
+
+
+test_backend_lane:
+  stage: testing
+  image: python:3.9
+  before_script:
+    - cd src/tests
+    - pip install -r requirements.txt
+  script:
+    - py.test --junitxml results_backend.xml test.py
+  artifacts:
+    when: always
+    reports:
+      junit: src/tests/results_backend.xml
+  tags:
+    - test

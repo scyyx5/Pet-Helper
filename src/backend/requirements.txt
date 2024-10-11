@@ -1,0 +1,14 @@
+django
+djangorestframework
+psycopg2
+Pillow
+django-cors-headers
+pytest
+requests
+jsonschema
+drf_yasg
+djangorestframework-simplejwt
+django-rest-swagger
+django-extensions
+Werkzeug
+pyOpenSSL

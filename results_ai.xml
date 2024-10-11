@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="1" failures="0" skipped="0" tests="1" time="5.698" timestamp="2022-03-23T02:30:30.317325" hostname="Andreis-MBP"><testcase classname="" name="src.ai.test" time="0.000"><error message="collection failure">src/ai/test.py:26: in &lt;module&gt;
+    class AiUnitTesting(unittest.TestCase):
+src/ai/test.py:27: in AiUnitTesting
+    dog_result = test_dog()
+src/ai/test.py:16: in test_dog
+    img = load_image("dog.png")
+src/ai/catvsdog.py:24: in load_image
+    img = load_img(filename, target_size=(224, 224))
+/usr/local/lib/python3.9/site-packages/keras/preprocessing/image.py:313: in load_img
+    return image.load_img(path, grayscale=grayscale, color_mode=color_mode,
+/usr/local/lib/python3.9/site-packages/keras_preprocessing/image/utils.py:113: in load_img
+    with open(path, 'rb') as f:
+E   FileNotFoundError: [Errno 2] No such file or directory: 'dog.png'</error></testcase></testsuite></testsuites>
